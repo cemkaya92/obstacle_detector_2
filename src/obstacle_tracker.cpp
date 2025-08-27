@@ -78,9 +78,13 @@ void ObstacleTracker::updateParamsUtil(){
   nh_->declare_parameter("process_rate_variance", rclcpp::PARAMETER_DOUBLE);
   nh_->declare_parameter("measurement_variance", rclcpp::PARAMETER_DOUBLE);
 
+  nh_->declare_parameter("obstacle_sub_topic", rclcpp::PARAMETER_STRING);
+  nh_->declare_parameter("obstacle_pub_topic", rclcpp::PARAMETER_STRING);
+  nh_->declare_parameter("obstacle_visual_pub_topic", rclcpp::PARAMETER_STRING);
+
   nh_->get_parameter_or("active", p_active_, true);
   nh_->get_parameter_or("copy_segments", p_copy_segments_, true);
-  nh_->get_parameter_or("compensate_robot_velocity", p_compensate_robot_velocity_, false);
+  nh_->get_parameter_or("compensate_robot_velocity", p_compensate_robot_velocity_, true);
   nh_->get_parameter_or("sensor_rate", p_sensor_rate_, 10.0);
   nh_->get_parameter_or("loop_rate", p_loop_rate_, 100.0);
   nh_->get_parameter_or("frame_id", p_frame_id_, string("map"));
@@ -91,6 +95,10 @@ void ObstacleTracker::updateParamsUtil(){
   nh_->get_parameter_or("process_variance", p_process_variance_, 0.01);
   nh_->get_parameter_or("process_rate_variance", p_process_rate_variance_, 0.1);
   nh_->get_parameter_or("measurement_variance", p_measurement_variance_, 1.0);
+
+  nh_->get_parameter_or("obstacle_sub_topic", p_obstacle_sub_topic_, string("/raw_obstacles"));
+  nh_->get_parameter_or("obstacle_pub_topic", p_obstacle_pub_topic_, string("/tracked_obstacles"));
+  nh_->get_parameter_or("obstacle_visual_pub_topic", p_obstacle_visual_pub_topic_, string("/tracked_obstacles_visualization"));
 
   p_sampling_time_ = 1.0 / p_loop_rate_;
   obstacles_.header.frame_id = p_frame_id_;
@@ -107,13 +115,13 @@ void ObstacleTracker::updateParamsUtil(){
   if (p_active_ != prev_active) {
     if (p_active_) {
       if(p_compensate_robot_velocity_){
-        odom_sub_ = nh_->create_subscription<nav_msgs::msg::Odometry>(
-            "/odom", 10, std::bind(&ObstacleTracker::odomCallback, this, std::placeholders::_1));
+        odom_sub_ = nh_->create_subscription<px4_msgs::msg::VehicleOdometry>(
+            "/fmu/out/vehicle_odometry", rclcpp::SensorDataQoS(), std::bind(&ObstacleTracker::odomCallback, this, std::placeholders::_1));
       }
       obstacles_sub_ = nh_->create_subscription<obstacle_detector::msg::Obstacles>(
-            "raw_obstacles", 10, std::bind(&ObstacleTracker::obstaclesCallback, this, std::placeholders::_1));
-      obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>("tracked_obstacles", 10);
-      obstacles_vis_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>("tracked_obstacles_visualization", 10);
+            p_obstacle_sub_topic_, 10, std::bind(&ObstacleTracker::obstaclesCallback, this, std::placeholders::_1));
+      obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>(p_obstacle_pub_topic_, 10);
+      obstacles_vis_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>(p_obstacle_visual_pub_topic_, 10);
     }
     else {
       // Send empty message
@@ -142,7 +150,7 @@ void ObstacleTracker::timerCallback() {
   publishVisualizationObstacles();
 }
 
-void ObstacleTracker::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
+void ObstacleTracker::odomCallback(const px4_msgs::msg::VehicleOdometry::ConstSharedPtr& msg)
 {
   odom_ = *msg;
 }
@@ -714,8 +722,8 @@ void ObstacleTracker::publishObstacles() {
     {
       double distance = sqrt(pow(ob.center.x, 2) + pow(ob.center.y, 2));
       double angle = atan2(ob.center.y, ob.center.x);
-      ob.velocity.x += odom_.twist.twist.linear.x - odom_.twist.twist.angular.z * distance * sin(angle);
-      ob.velocity.y += odom_.twist.twist.linear.y + odom_.twist.twist.angular.z * distance * cos(angle);
+      ob.velocity.x += odom_.velocity[0] - odom_.angular_velocity[2] * distance * sin(angle);
+      ob.velocity.y += odom_.velocity[1] + odom_.angular_velocity[2] * distance * cos(angle);
     }
     obstacles_.circles.push_back(ob);
   }
@@ -729,10 +737,10 @@ void ObstacleTracker::publishObstacles() {
       double distance_last = sqrt(pow(ob.last_point.x, 2) + pow(ob.last_point.y, 2));
       double angle_first = atan2(ob.first_point.y, ob.first_point.x);
       double angle_last = atan2(ob.last_point.y, ob.last_point.x);
-      ob.first_velocity.x += odom_.twist.twist.linear.x - odom_.twist.twist.angular.z * distance_first * sin(angle_first);
-      ob.first_velocity.y += odom_.twist.twist.linear.y + odom_.twist.twist.angular.z * distance_first * cos(angle_first);
-      ob.last_velocity.x += odom_.twist.twist.linear.x - odom_.twist.twist.angular.z * distance_last * sin(angle_last);
-      ob.last_velocity.y += odom_.twist.twist.linear.y + odom_.twist.twist.angular.z * distance_last * cos(angle_last);
+      ob.first_velocity.x += odom_.velocity[0] - odom_.angular_velocity[2] * distance_first * sin(angle_first);
+      ob.first_velocity.y += odom_.velocity[1] + odom_.angular_velocity[2] * distance_first * cos(angle_first);
+      ob.last_velocity.x += odom_.velocity[0] - odom_.angular_velocity[2] * distance_last * sin(angle_last);
+      ob.last_velocity.y += odom_.velocity[1] + odom_.angular_velocity[2] * distance_last * cos(angle_last);
     }
     obstacles_.segments.push_back(ob);
   }

@@ -88,6 +88,8 @@ void ObstacleExtractor::updateParamsUtil(){
   nh_->declare_parameter("min_y_limit", rclcpp::PARAMETER_DOUBLE);
   nh_->declare_parameter("max_y_limit", rclcpp::PARAMETER_DOUBLE);
   nh_->declare_parameter("frame_id", rclcpp::PARAMETER_STRING);
+  nh_->declare_parameter("obstacle_pub_topic", rclcpp::PARAMETER_STRING);
+  nh_->declare_parameter("obstacle_visual_pub_topic", rclcpp::PARAMETER_STRING);
 
   nh_->get_parameter_or("active", p_active_, true);
   nh_->get_parameter_or("use_scan", p_use_scan_, true);
@@ -112,13 +114,15 @@ void ObstacleExtractor::updateParamsUtil(){
   nh_->get_parameter_or("min_y_limit", p_min_y_limit_, -10.0);
   nh_->get_parameter_or("max_y_limit", p_max_y_limit_,  10.0);
   nh_->get_parameter_or("frame_id", p_frame_id_, std::string{"map"});
+  nh_->get_parameter_or("obstacle_pub_topic", p_obstacle_pub_topic_, std::string{"/raw_obstacles"});
+  nh_->get_parameter_or("obstacle_visual_pub_topic", p_obstacle_visual_pub_topic_, std::string{"/raw_obstacles_visualization"});
 
   if (p_active_ != prev_active) {
     if (p_active_) {
       if (p_use_scan_){
         RCLCPP_INFO_STREAM_ONCE(nh_->get_logger(), "Using LaserScan topic");
         scan_sub_ = nh_->create_subscription<sensor_msgs::msg::LaserScan>(
-            "scan", 10, std::bind(&ObstacleExtractor::scanCallback, this, std::placeholders::_1));
+            "/scan", 10, std::bind(&ObstacleExtractor::scanCallback, this, std::placeholders::_1));
       }else if (p_use_pcl_){
         RCLCPP_INFO_STREAM_ONCE(nh_->get_logger(), "Using PointCloud1 topic");
         pcl_sub_ = nh_->create_subscription<sensor_msgs::msg::PointCloud>(
@@ -128,8 +132,8 @@ void ObstacleExtractor::updateParamsUtil(){
         pcl2_sub_ = nh_->create_subscription<sensor_msgs::msg::PointCloud2>(
             "pcl2", 10, std::bind(&ObstacleExtractor::pcl2Callback, this, std::placeholders::_1));
       }
-      obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>("raw_obstacles", 10);
-      obstacles_vis_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>("raw_obstacles_visualization", 10);
+      obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>(p_obstacle_pub_topic_, 10);
+      obstacles_vis_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>(p_obstacle_visual_pub_topic_, 10);
     }
     else {
       // Send empty message
@@ -148,6 +152,9 @@ void ObstacleExtractor::updateParams(const std::shared_ptr<rmw_request_id_t> req
 }
 
 void ObstacleExtractor::scanCallback(const sensor_msgs::msg::LaserScan& scan_msg) {
+
+  RCLCPP_INFO_STREAM_ONCE(nh_->get_logger(), "Inside scan callback");
+
   base_frame_id_ = scan_msg.header.frame_id;
   stamp_ = scan_msg.header.stamp;
 

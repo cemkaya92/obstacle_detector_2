@@ -147,6 +147,8 @@ private:
 
   std::string p_frame_id_;
   std::string published_obstacles_frame_id_ = "";
+  std::string p_obstacle_pub_topic_;
+  std::string p_obstacle_visual_pub_topic_;
 };
 
 } // namespace obstacle_detector

@@ -40,7 +40,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include <armadillo>
 #include "std_srvs/srv/empty.hpp"
-#include "nav_msgs/msg/odometry.hpp"
+#include "px4_msgs/msg/vehicle_odometry.hpp"
 
 #include "visualization_msgs/msg/marker.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -68,7 +68,7 @@ private:
   void obstaclesCallback(const obstacle_detector::msg::Obstacles::ConstSharedPtr& new_obstacles);
   void obstaclesCallbackCircles(const obstacle_detector::msg::Obstacles::ConstSharedPtr& new_obstacles);
   void obstaclesCallbackSegments(const obstacle_detector::msg::Obstacles::ConstSharedPtr& new_obstacles);
-  void odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
+  void odomCallback(const px4_msgs::msg::VehicleOdometry::ConstSharedPtr& msg);
 
   void initialize() { std_srvs::srv::Empty empt; updateParamsUtil(); }
 
@@ -106,7 +106,7 @@ private:
   std::shared_ptr<rclcpp::Node> nh_local_;
 
   rclcpp::Subscription<obstacle_detector::msg::Obstacles>::SharedPtr obstacles_sub_;
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odom_sub_;
   rclcpp::Publisher<obstacle_detector::msg::Obstacles>::SharedPtr obstacles_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr obstacles_vis_pub_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr params_srv_;
@@ -114,7 +114,7 @@ private:
 
   double radius_margin_;
   obstacle_detector::msg::Obstacles obstacles_;
-  nav_msgs::msg::Odometry odom_;
+  px4_msgs::msg::VehicleOdometry odom_;
 
   std::vector<TrackedCircleObstacle> tracked_circle_obstacles_;
   std::vector<obstacle_detector::msg::CircleObstacle> untracked_circle_obstacles_;
@@ -137,6 +137,9 @@ private:
   double p_measurement_variance_;
 
   std::string p_frame_id_;
+  std::string p_obstacle_sub_topic_;
+  std::string p_obstacle_pub_topic_;
+  std::string p_obstacle_visual_pub_topic_;
 };
 
 } // namespace obstacle_detector

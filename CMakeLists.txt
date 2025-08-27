@@ -14,7 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -35,7 +35,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 set(PROJECT_INCLUDE_DIRS include)
-set(PROJECT_DEPENDS "rclcpp" "std_msgs" "nav_msgs" "std_srvs" "visualization_msgs" "geometry_msgs" "sensor_msgs" "tf2" "tf2_geometry_msgs" "tf2_ros" "laser_geometry" "rosidl_default_generators")
+set(PROJECT_DEPENDS "rclcpp" "std_msgs" "px4_msgs" "std_srvs" "visualization_msgs" "geometry_msgs" "sensor_msgs" "tf2" "tf2_geometry_msgs" "tf2_ros" "laser_geometry" "rosidl_default_generators")
 
 include_directories(include ${PROJECT_INCLUDE_DIRS} ${ARMADILLO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
