@@ -116,7 +116,7 @@ void ObstacleTracker::updateParamsUtil(){
     if (p_active_) {
       if(p_compensate_robot_velocity_){
         odom_sub_ = nh_->create_subscription<px4_msgs::msg::VehicleOdometry>(
-            "/fmu/out/vehicle_odometry", rclcpp::SensorDataQoS(), std::bind(&ObstacleTracker::odomCallback, this, std::placeholders::_1));
+            "fmu/out/vehicle_odometry", rclcpp::SensorDataQoS(), std::bind(&ObstacleTracker::odomCallback, this, std::placeholders::_1));
       }
       obstacles_sub_ = nh_->create_subscription<obstacle_detector::msg::Obstacles>(
             p_obstacle_sub_topic_, 10, std::bind(&ObstacleTracker::obstaclesCallback, this, std::placeholders::_1));
